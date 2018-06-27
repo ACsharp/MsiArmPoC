@@ -1,0 +1,180 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2014-04-01-preview/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "websitename": {
+      "type": "String"
+    },
+    "storageName": {
+      "type": "String"
+    },
+    "location": {
+      "type": "String"
+    },
+    "subscriptionId": {
+      "type": "String"
+    },
+    "serviceBusNamespaceName": {
+      "type": "String"
+    },
+    "serviceBusQueueName": {
+      "type": "String"
+    },
+    "roleNameGuid": {
+      "type": "String"
+    }
+   
+   
+  },
+  "variables": {
+    "Owner": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', '8e3af657-a8ff-443c-a75c-2fe8c4bcb635')]",
+    "Contributor": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]",
+    "Reader": "[concat('/subscriptions/', subscription().subscriptionId, '/providers/Microsoft.Authorization/roleDefinitions/', 'acdd72a7-3385-48ef-bd42-f606fba81ae7')]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/sites",
+      "kind": "functionapp",
+      "name": "[parameters('websitename')]",
+      "apiVersion": "2016-03-01",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+
+      "properties": {
+        "siteConfig": {
+          "appSettings": [
+            {
+              "name": "AzureWebJobsDashboard",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storageName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageName')), '2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "AzureWebJobsStorage",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storageName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageName')), '2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "FUNCTIONS_EXTENSION_VERSION",
+              "value": "~1"
+            },
+            {
+              "name": "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING",
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=',parameters('storageName'),';AccountKey=',listKeys(resourceId('Microsoft.Storage/storageAccounts', parameters('storageName')), '2015-05-01-preview').key1)]"
+            },
+            {
+              "name": "WEBSITE_CONTENTSHARE",
+              "value": "[concat(toLower(parameters('websitename')), 'b972')]"
+            },
+            {
+              "name": "WEBSITE_NODE_DEFAULT_VERSION",
+              "value": "6.5.0"
+            },
+            {
+              "name": "APPINSIGHTS_INSTRUMENTATIONKEY",
+              "value": "[reference(resourceId('microsoft.insights/components/', parameters('websitename')), '2015-05-01').InstrumentationKey]"
+            }
+          ]
+        },
+        "name": "[parameters('websitename')]",
+        "clientAffinityEnabled": false,
+        "reserved": false
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageName'))]",
+        "[resourceId('microsoft.insights/components/', parameters('websitename'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[parameters('storageName')]",
+      "apiVersion": "2015-05-01-preview",
+      "location": "[parameters('location')]",
+      "properties": {
+        "accountType": "Standard_LRS"
+      }
+    },
+    {
+      "type": "microsoft.insights/components",
+      "name": "[parameters('websitename')]",
+      "apiVersion": "2015-05-01",
+      "location": "West Europe",
+      "tags": {
+        "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/sites/', parameters('websitename'))]": "Resource"
+      },
+      "properties": {
+        "ApplicationId": "[parameters('websitename')]",
+        "Request_Source": "IbizaWebAppExtensionCreate"
+      }
+    },
+    {
+      "apiVersion": "2017-04-01",
+      "name": "[parameters('serviceBusNamespaceName')]",
+      "type": "Microsoft.ServiceBus/Namespaces",
+      "location": "[parameters('location')]",
+      "kind": "Messaging",
+      "sku": {
+          "name": "Standard"
+      },
+      "resources": [{
+          "apiVersion": "2017-04-01",
+          "name": "[parameters('serviceBusQueueName')]",
+          "type": "Queues",
+          "dependsOn": [
+              "[concat('Microsoft.ServiceBus/namespaces/', parameters('serviceBusNamespaceName'))]"
+          ],
+          "properties": {
+              "path": "[parameters('serviceBusQueueName')]"
+          }
+      }
+      /*,{
+        "type": "Microsoft.Authorization/roleAssignments",
+        "apiVersion": "2018-01-01-preview",
+        "name": "[parameters('roleNameGuid')]",
+        "properties": {
+          "roleDefinitionId": "[variables('Owner')]",
+          "principalId": "[reference(concat('Microsoft.Web/Sites/', parameters('websitename')), '2018-02-01', 'Full').identity.principalId]",
+          "scope": "[concat(resourceGroup().id, '/providers/Microsoft.ServiceBus/namespaces/', parameters('serviceBusNamespaceName'))]"
+         },
+          "dependsOn": [
+              "[concat('Microsoft.ServiceBus/namespaces/', parameters('serviceBusNamespaceName'))]",
+              "[concat('Microsoft.Web/Sites/', parameters('websitename'))]"
+              
+          ]
+        }*/]
+    }
+    /*,
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2017-05-01",
+      "name": "[parameters('roleNameGuid')]",
+      "properties": {
+        "roleDefinitionId": "[variables('Owner')]",
+        "principalId": "[reference(concat('Microsoft.Web/Sites/', parameters('websitename')), '2018-02-01', 'Full').identity.principalId]",
+        "scope": "[concat(resourceGroup().id, '/providers/Microsoft.ServiceBus/namespaces/', parameters('serviceBusNamespaceName'))]"
+        //"scope": "[concat(resourceGroup().id, '/providers/Microsoft.ServiceBus/namespaces/', parameters('serviceBusNamespaceName'), '/queues/', parameters('serviceBusQueueName'))]"
+
+      },
+      "dependsOn": [
+          "[concat('Microsoft.ServiceBus/namespaces/', parameters('serviceBusNamespaceName'))]",
+          "[concat('Microsoft.Web/Sites/', parameters('websitename'))]"
+          
+      ]
+
+
+    }
+      */
+  ],
+
+  "outputs": {
+    "websiteobject": {
+      "value": "[reference(concat('Microsoft.Web/sites/', parameters('websitename')), '2016-03-01')]",
+      "type": "object"
+    }
+
+  }
+
+
+
+}
+
+

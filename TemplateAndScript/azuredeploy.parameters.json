@@ -1,0 +1,29 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "websitename": {
+      "value": "funkypigeon3"
+    },
+    "storageName": {
+      "value": "funkypigeonb9723"
+    },
+    "location": {
+      "value": "West Europe"
+    },
+    "subscriptionId": {
+      "value": "30eb243b-127d-452b-a744-e3ffffac46ac"
+    },
+    "serviceBusNamespaceName": {
+      "value": "asb-msitest-asos3"
+    },
+    "serviceBusQueueName": {
+      "value": "myqueue"
+    },
+    "roleNameGuid": {
+      "value": "2a14b9d3-43c3-4ec7-9152-b5c3e75f8fd8"
+    }
+
+    
+  }
+}
